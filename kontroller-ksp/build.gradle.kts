@@ -24,7 +24,7 @@ mavenPublishing {
     pom {
         name = "kontroller"
         description = "A library for generating controller routing using ksp for ktor"
-        url = "https://github.com/ttraum/kontroller"
+        url = "https://github.com/TotenTraum/kontroller"
 
         licenses {
             license {
@@ -35,9 +35,9 @@ mavenPublishing {
         }
 
         scm {
-            url = "https://github.com/ttraum/kontroller"
-            connection = "scm:git:git://github.com/ttraum/kontroller.git"
-            developerConnection = "scm:git:ssh://git@github.com/ttraum/kontroller.git"
+            url = "https://github.com/TotenTraum/kontroller"
+            connection = "scm:git:git://github.com/TotenTraum/kontroller.git"
+            developerConnection = "scm:git:ssh://git@github.com/TotenTraum/kontroller.git"
         }
 
         developers {
