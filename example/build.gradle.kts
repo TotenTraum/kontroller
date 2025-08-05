@@ -16,6 +16,7 @@ repositories {
 
 dependencies {
     implementation(projects.kontrollerAnnotations)
+    implementation(projects.kontrollerCore)
     implementation(libs.bundles.kotlinxEcosystem)
     implementation(libs.kotlinPoet)
     implementation(libs.kspApi)

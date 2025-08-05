@@ -12,6 +12,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import ru.ttraum.example.api.*
 import ru.ttraum.example.api.dto.ErrorResponse
+import ru.ttraum.example.controller.FileController
 import ru.ttraum.example.controller.HomePageController
 import ru.ttraum.example.controller.StoreController
 
@@ -38,6 +39,9 @@ fun Application.routing() {
         val homeRouter: HomePageApiRouter by dependencies
         this.routes(homeRouter)
 
+        val fileRouter: FileApiRouter by dependencies
+        this.routes(fileRouter)
+
     }
 }
 
@@ -59,6 +63,9 @@ fun Application.serialization() {
 fun Application.di() {
     dependencies.provide<StoreApi> { StoreController() }
     dependencies.provide<HomePageApi> { HomePageController() }
+    dependencies.provide<FileApi> { FileController() }
+
     dependencies.provide<StoreApiRouter> { StoreApiRouter(this.resolve()) }
     dependencies.provide<HomePageApiRouter> { HomePageApiRouter(this.resolve()) }
+    dependencies.provide<FileApiRouter> { FileApiRouter(this.resolve()) }
 }

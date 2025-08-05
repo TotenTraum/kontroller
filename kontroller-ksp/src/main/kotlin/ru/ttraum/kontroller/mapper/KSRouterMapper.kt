@@ -4,31 +4,19 @@ import arrow.core.*
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.option
-import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSValueParameter
-import ru.ttraum.kontroller.constant.Constants
-import ru.ttraum.kontroller.core.http.BodyParam
-import ru.ttraum.kontroller.core.http.Controller
+import io.ktor.http.content.*
 import ru.ttraum.kontroller.model.*
-import ru.ttraum.kontroller.utils.*
-
-private val httpMethodAnnotations = Constants.HttpMethodAnnotations
-private val controllerAnnotation = Controller::class.qualifiedName
-
-val httpMethodsAnnotationPredicate = createAnnotationPredicate(httpMethodAnnotations)
-val httpMethodsTypePredicate = createTypePredicate(httpMethodAnnotations)
-val controllerTypePredicate = createTypePredicate(listOf(controllerAnnotation))
-val bodyParamAnnotationPredicate = createTypePredicate(listOf(BodyParam::class.qualifiedName))
-
-private fun createAnnotationPredicate(annotations: List<String?>): (KSAnnotation) -> Boolean = { annotation ->
-    annotation.annotationType.resolve().declaration.qualifiedName?.asString() in annotations
-}
-
-fun createTypePredicate(types: List<String?>): (TypeModel) -> Boolean = { typeModel ->
-    typeModel.qualifiedName in types
-}
+import ru.ttraum.kontroller.predicate.AnnotationModelPredicates
+import ru.ttraum.kontroller.predicate.KSAnnotationPredicates
+import ru.ttraum.kontroller.predicate.KSFunctionPredicates
+import ru.ttraum.kontroller.predicate.ParameterModelPredicates
+import ru.ttraum.kontroller.utils.toAnnotationModels
+import ru.ttraum.kontroller.utils.toParameterModels
+import ru.ttraum.kontroller.utils.toResultModel
+import ru.ttraum.kontroller.utils.toTypeModel
 
 fun controllerModelFromKSClass(controllerClass: KSClassDeclaration): Either<MapperError, RouterModel> = either {
     val controller = controllerClass.toTypeModel()
@@ -45,19 +33,29 @@ fun controllerModelFromKSClass(controllerClass: KSClassDeclaration): Either<Mapp
 
 fun extractBasePath(annotations: List<AnnotationModel>): Option<String> = option {
     annotations
-        .first { controllerTypePredicate(it.type) }
+        .first(AnnotationModelPredicates.controllerTypeAnnotation)
         .let { it.fields["basePath"] as String }
 }
 
 private fun extractHandlers(controllerClass: KSClassDeclaration): EitherNel<MapperError, List<RouteModel>> =
     controllerClass.getAllFunctions()
-        .filter { it.hasHttpMethodAnnotation() }
+        .filter(KSFunctionPredicates.hasHttpMethodAnnotation)
         .mapOrAccumulate { mapHandler(it).bind() }
 
 private fun mapHandler(function: KSFunctionDeclaration): Either<MapperError, RouteModel> = either {
     val handlerName = function.qualifiedName?.getShortName() ?: ""
     val annotations = function.annotations.toAnnotationModels().toList()
-    val parameters = function.parameters.extractParams()
+    val parameters = function.parameters.toParameterModels().toList()
+
+    val queryParams = function.parameters.extractQueryParamsModel()
+        .mapLeft { MapperError.RouteError(handlerName, listOf(it)) }
+        .bind()
+
+    val multipartParam = function.parameters.extractMultipart()
+        .mapLeft { MapperError.RouteError(handlerName, listOf(it)) }
+        .bind()
+
+    val bodyParam = function.parameters.extractBodyParams()
         .mapLeft { MapperError.RouteError(handlerName, listOf(it)) }
         .bind()
 
@@ -73,14 +71,15 @@ private fun mapHandler(function: KSFunctionDeclaration): Either<MapperError, Rou
         method = definition.method,
         parameters = parameters,
         returnType = returnType,
-        annotations = annotations
+        annotations = annotations,
+        queryParamsModels = queryParams,
+        multipartParam = multipartParam,
+        bodyParam = bodyParam,
     )
 }
 
-data class HttpDefinition(val path: String, val method: String)
-
 private fun extractHttpMethod(annotations: List<AnnotationModel>): Either<MapperError, HttpDefinition> = either {
-    val httpMethods = annotations.filter { httpMethodsTypePredicate(it.type) }
+    val httpMethods = annotations.filter(AnnotationModelPredicates.hasHttpMethodsAnnotation)
 
     ensure(httpMethods.size == 1) { MapperError.ManyHttpMethods() }
 
@@ -92,17 +91,51 @@ private fun extractHttpMethod(annotations: List<AnnotationModel>): Either<Mapper
     HttpDefinition(path, httpMethod)
 }
 
-private fun List<KSValueParameter>.extractParams(): Either<MapperError, List<ParameterModel>> = either {
-    val params = this@extractParams.toParameterModels()
+private fun List<KSValueParameter>.extractQueryParamsModel(): Either<MapperError, List<QueryParamsModel>> = either {
+    this@extractQueryParamsModel
+        .filter { it.annotations.any(KSAnnotationPredicates.queryModelAnnotation) }
+        .filter { it.type.resolve().declaration is KSClassDeclaration }
+        .map {
+            val classDecl = it.type.resolve().declaration as KSClassDeclaration
+            val params: List<ParameterModel> =
+                classDecl
+                    .primaryConstructor
+                    ?.parameters
+                    ?.toParameterModels()
+                    ?: listOf()
 
-    val bodyParams = params.filter(hasBodyParamAnnotation)
+            QueryParamsModel(
+                it.name!!.asString(),
+                it.type.toTypeModel(),
+                params
+            )
+        }
+}
+
+private fun List<KSValueParameter>.extractBodyParams(): Either<MapperError, ParameterModel?> = either {
+    val params = this@extractBodyParams.toParameterModels()
+
+    val bodyParams = params.filter(ParameterModelPredicates.hasBodyParamAnnotation)
     ensure(bodyParams.size <= 1) { MapperError.ManyBodyParams() }
 
-    params
+    bodyParams.singleOrNull()
+}
+
+private fun List<KSValueParameter>.extractMultipart(): Either<MapperError, ParameterModel?> = either {
+    val multipartParam = this@extractMultipart
+        .toParameterModels()
+        .filter(ParameterModelPredicates.hasMultipartParamAnnotation)
+
+    ensure(multipartParam.size <= 1) { MapperError.ManyMultipartParams() }
+
+    val multipart = multipartParam.singleOrNull()
+
+    if (multipart != null) {
+        ensure(multipart.type.qualifiedName == MultiPartData::class.qualifiedName) { MapperError.InvalidMultipartParamType() }
+    }
+
+    multipart
 }
 
 private fun generateRouterName(controllerName: String): String =
     controllerName.removeSuffix("Controller") + "Router"
-
-private val hasBodyParamAnnotation: (ParameterModel) -> Boolean =
-    { param -> param.annotations.any(bodyParamAnnotationPredicate compose AnnotationModel::type) }

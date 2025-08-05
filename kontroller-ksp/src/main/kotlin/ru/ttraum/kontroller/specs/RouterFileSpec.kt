@@ -2,7 +2,9 @@ package ru.ttraum.kontroller.specs
 
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.TypeSpec
+import ru.ttraum.kontroller.constant.MemberNames
 import ru.ttraum.kontroller.model.RouterModel
 
 fun generateRouterFile(router: RouterModel): FileSpec {
@@ -15,8 +17,9 @@ fun generateRouterFile(router: RouterModel): FileSpec {
     val funSpec = createClosureRoutesFunction(router)
 
     return createFileSpec(router, routerSpec) {
-        this.addType(routerSpec)
-        this.addFunction(funSpec)
+        addType(routerSpec)
+        addFunction(funSpec)
+        addDefaultImports(MemberNames.ktorGetValueOrNull)
     }
 }
 
@@ -38,5 +41,11 @@ private fun FileSpec.Builder.suppressWarnings(vararg types: String): FileSpec.Bu
                 .addMember(format, *types)
                 .build()
         )
+    }
+}
+
+private fun FileSpec.Builder.addDefaultImports(vararg members: MemberName): FileSpec.Builder = apply {
+    members.forEach {
+        this.addImport(it.packageName, it.simpleName)
     }
 }

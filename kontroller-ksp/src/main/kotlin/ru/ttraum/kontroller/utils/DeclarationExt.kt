@@ -1,13 +1,13 @@
 package ru.ttraum.kontroller.utils
 
 import com.google.devtools.ksp.symbol.*
-import ru.ttraum.kontroller.mapper.httpMethodsAnnotationPredicate
 import ru.ttraum.kontroller.model.*
 
 fun KSClassDeclaration.toTypeModel(): TypeModel = TypeModel(
     packageName = packageName.asString(),
     className = simpleName.asString(),
     qualifiedName = qualifiedName?.asString() ?: "",
+    false,
     listOf()
 )
 
@@ -15,6 +15,7 @@ fun KSDeclaration.toTypeModel(): TypeModel = TypeModel(
     packageName = packageName.asString(),
     className = simpleName.asString(),
     qualifiedName = qualifiedName?.asString() ?: "",
+    false,
     listOf()
 )
 
@@ -26,10 +27,13 @@ fun KSTypeReference.toTypeModel(): TypeModel {
         ?.map { it.toTypeModel() }
         ?: listOf()
 
+    val isNullable = (this.resolve().nullability == Nullability.NULLABLE)
+
     return TypeModel(
         packageName = decl.packageName.asString(),
         className = decl.simpleName.asString(),
         qualifiedName = decl.qualifiedName?.asString() ?: "",
+        isNullable = isNullable,
         typeArgs
     )
 }
@@ -43,9 +47,6 @@ fun Sequence<KSAnnotation>.toAnnotationModels(): Sequence<AnnotationModel> =
             }
         )
     }
-
-fun KSFunctionDeclaration.hasHttpMethodAnnotation(): Boolean =
-    annotations.any(httpMethodsAnnotationPredicate)
 
 fun List<KSValueParameter>.toParameterModels(): List<ParameterModel> =
     map { parameter ->

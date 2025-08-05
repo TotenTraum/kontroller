@@ -4,7 +4,6 @@ import com.squareup.kotlinpoet.MemberName
 
 object MemberNames {
 
-    val ktorMethod = MemberName(PackageNames.KTOR_SERVER_ROUTING, "method")
     val ktorGet = MemberName(PackageNames.KTOR_SERVER_ROUTING, "get")
     val ktorPost = MemberName(PackageNames.KTOR_SERVER_ROUTING, "post")
     val ktorPut = MemberName(PackageNames.KTOR_SERVER_ROUTING, "put")
@@ -13,8 +12,9 @@ object MemberNames {
     val ktorDelete = MemberName(PackageNames.KTOR_SERVER_ROUTING, "delete")
 
     val ktorReceive = MemberName(PackageNames.KTOR_SERVER_RECEIVE, "receive")
+    val ktorReceiveMultipart = MemberName(PackageNames.KTOR_SERVER_RECEIVE, "receiveMultipart")
+    val ktorGetValueOrNull = MemberName(PackageNames.KONTROLLER_UTIL, "getValue")
 
     val ktorHeader = MemberName(PackageNames.KTOR_SERVER_RESPONSE, "header")
     val ktorRespond = MemberName(PackageNames.KTOR_SERVER_RESPONSE, "respond")
-    val ktorRespondText = MemberName(PackageNames.KTOR_SERVER_RESPONSE, "respondText")
 }

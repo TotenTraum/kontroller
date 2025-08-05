@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 class StartupTest {
     @Test
     fun startupTest() = testApplication {
-        application{
+        application {
             module()
         }
         val response = client.get("")

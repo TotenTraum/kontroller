@@ -6,10 +6,12 @@ data class TypeModel(
     val packageName: String,
     val className: String,
     val qualifiedName: String,
+    val isNullable: Boolean,
     val typeArguments: List<TypeModel>
 ) {
     fun getSignature(): String {
-        return className + getGenericSignature()
+        val nullSafety = if (isNullable) "?" else ""
+        return className + getGenericSignature() + nullSafety
     }
 
     fun getFullSignature(): String {
@@ -28,5 +30,6 @@ val UnitTypeModel = TypeModel(
     UNIT.packageName,
     UNIT.simpleName,
     UNIT.packageName + "." + UNIT.simpleName,
+    false,
     listOf()
 )

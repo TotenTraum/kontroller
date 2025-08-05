@@ -7,20 +7,11 @@ import io.ktor.http.*
 import io.ktor.server.routing.*
 import ru.ttraum.kontroller.constant.Constants
 import ru.ttraum.kontroller.constant.MemberNames
-import ru.ttraum.kontroller.core.http.BodyParam
-import ru.ttraum.kontroller.core.http.HttpHeader
-import ru.ttraum.kontroller.core.http.PathParam
-import ru.ttraum.kontroller.mapper.createTypePredicate
-import ru.ttraum.kontroller.model.AnnotationModel
-import ru.ttraum.kontroller.model.ParameterModel
-import ru.ttraum.kontroller.model.RouteModel
-import ru.ttraum.kontroller.model.RouterModel
+import ru.ttraum.kontroller.model.*
+import ru.ttraum.kontroller.predicate.AnnotationModelPredicates
+import ru.ttraum.kontroller.predicate.ParameterModelPredicates
+import ru.ttraum.kontroller.predicate.TypeModelPredicates
 import ru.ttraum.kontroller.utils.useControlFlow
-import java.util.*
-
-private val headerAnnotationPredicate = createTypePredicate(listOf(HttpHeader::class.qualifiedName))
-private val pathParamAnnotationPredicate = createTypePredicate(listOf(PathParam::class.qualifiedName))
-private val bodyParamAnnotationPredicate = createTypePredicate(listOf(BodyParam::class.qualifiedName))
 
 fun createRouteSpec(router: RouterModel, route: RouteModel): FunSpec =
     FunSpec.builder(route.name + route.method)
@@ -32,19 +23,16 @@ private fun buildRouteCodeBlock(router: RouterModel, route: RouteModel): CodeBlo
     CodeBlock.builder()
         .apply {
             defineMethod(router, route) {
-                setupHeaders(route.annotations.filter(headerAnnotationPredicate compose AnnotationModel::type))
-                setupPathParams(route.parameters.filter(hasPathParamAnnotation))
-                setupBodyParam(route.parameters.filter(hasBodyParamAnnotation))
+                setupHeaders(route.annotations.filter(AnnotationModelPredicates.headerParamAnnotation))
+                setupQueryModel(route.queryParamsModels)
+                setupQueryParam(route.parameters.filter(ParameterModelPredicates.hasQueryParamAnnotation))
+                setupPathParams(route.parameters.filter(ParameterModelPredicates.hasPathParamAnnotation))
+                setupBodyParam(route.bodyParam)
+                setupMultipartParam(route.multipartParam)
                 handleRequest(router, route)
             }
         }
         .build()
-
-private val hasPathParamAnnotation: (ParameterModel) -> Boolean =
-    { param -> param.annotations.any(pathParamAnnotationPredicate compose AnnotationModel::type) }
-
-private val hasBodyParamAnnotation: (ParameterModel) -> Boolean =
-    { param -> param.annotations.any(bodyParamAnnotationPredicate compose AnnotationModel::type) }
 
 private fun CodeBlock.Builder.setupHeaders(headers: List<AnnotationModel>) =
     headers.forEach { header ->
@@ -55,25 +43,49 @@ private fun CodeBlock.Builder.setupHeaders(headers: List<AnnotationModel>) =
 
 private fun CodeBlock.Builder.setupPathParams(pathParams: List<ParameterModel>) =
     pathParams.forEach { param ->
-        val extractParam = "requireNotNull(call.parameters[\"${param.name}\"])"
-        val statement = "val ${param.name} ="
-        when (param.type.qualifiedName) {
-            Int::class.qualifiedName -> addStatement("$statement.toInt()")
-            Long::class.qualifiedName -> addStatement("$statement.toLong()")
-            Float::class.qualifiedName -> addStatement("$statement.toFloat()")
-            Double::class.qualifiedName -> addStatement("$statement.toDouble()")
-            Boolean::class.qualifiedName -> addStatement("$statement.toBoolean()")
-            UUID::class.qualifiedName -> addStatement("$statement %T.fromString($extractParam)", UUID::class)
-            else -> addStatement(statement)
-        }
+        val statement = "val ${param.name}: ${param.type.getFullSignature()} by call.parameters"
+        addStatement(statement)
     }
 
-private fun CodeBlock.Builder.setupBodyParam(bodyParams: List<ParameterModel>) =
-    bodyParams.singleOrNull()?.let { param ->
+private fun CodeBlock.Builder.setupBodyParam(bodyParam: ParameterModel?) =
+    bodyParam?.let { param ->
         addStatement(
             "val ${param.name} = call.%M<${param.type.getFullSignature()}>()",
             MemberNames.ktorReceive
         )
+    }
+
+private fun CodeBlock.Builder.setupMultipartParam(multipartParam: ParameterModel?) =
+    multipartParam?.let { param ->
+        val annotation =
+            param.annotations
+                .single(TypeModelPredicates.multipartParamAnnotation compose AnnotationModel::type)
+
+        val formFieldLimit = annotation.fields["formFieldLimit"] as Long
+
+        addStatement(
+            "val ${param.name} = call.%M($formFieldLimit)",
+            MemberNames.ktorReceiveMultipart
+        )
+    }
+
+private fun CodeBlock.Builder.setupQueryParam(pathParams: List<ParameterModel>) =
+    pathParams.forEach { param ->
+        val statement = "val ${param.name}: ${param.type.getFullSignature()} by call.request.queryParameters"
+        addStatement(statement)
+    }
+
+private fun CodeBlock.Builder.setupQueryModel(queryParamsModels: List<QueryParamsModel>) =
+    queryParamsModels.forEach { queryParamsModel ->
+        useControlFlow("val ${queryParamsModel.name} = run") {
+            queryParamsModel.params.forEach { param ->
+                val statement =
+                    "val ${param.name}: ${param.type.getFullSignature()} by call.request.queryParameters"
+                addStatement(statement)
+            }
+            val parameterCall = buildParameterCall(queryParamsModel.params)
+            addStatement("${queryParamsModel.type.getFullSignature()}($parameterCall)")
+        }
     }
 
 private fun CodeBlock.Builder.handleRequest(router: RouterModel, route: RouteModel) {

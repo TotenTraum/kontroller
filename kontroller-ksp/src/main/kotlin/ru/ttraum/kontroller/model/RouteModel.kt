@@ -5,6 +5,9 @@ data class RouteModel(
     val path: String,
     val method: String,
     val parameters: List<ParameterModel>,
+    val queryParamsModels: List<QueryParamsModel>,
+    val multipartParam: ParameterModel?,
+    val bodyParam: ParameterModel?,
     val returnType: ResultModel,
     val annotations: List<AnnotationModel>
 )

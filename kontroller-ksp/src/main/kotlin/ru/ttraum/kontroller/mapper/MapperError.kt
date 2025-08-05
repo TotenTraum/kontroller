@@ -12,6 +12,14 @@ sealed interface MapperError : Error {
         override fun error() = "Multiple BodyParams annotation were found"
     }
 
+    class InvalidMultipartParamType() : MapperError {
+        override fun error() = "Invalid multipart parameter type were found"
+    }
+
+    class ManyMultipartParams() : MapperError {
+        override fun error() = "Multiple MultipartParam annotation were found"
+    }
+
     class RouteError(val route: String, val routes: List<MapperError>) : MapperError {
         override fun error(): String {
             return "route $route:\n\t" + routes.joinToString { it.error() }
