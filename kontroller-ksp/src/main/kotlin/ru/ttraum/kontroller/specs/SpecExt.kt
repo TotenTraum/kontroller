@@ -1,4 +1,4 @@
-package ru.ttraum.kontroller.utils
+package ru.ttraum.kontroller.specs
 
 import com.squareup.kotlinpoet.CodeBlock
 

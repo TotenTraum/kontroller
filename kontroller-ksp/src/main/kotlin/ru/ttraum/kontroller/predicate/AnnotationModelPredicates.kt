@@ -1,33 +1,21 @@
 package ru.ttraum.kontroller.predicate
 
-import arrow.core.compose
+import ru.ttraum.kontroller.constant.Constants
+import ru.ttraum.kontroller.core.http.*
 import ru.ttraum.kontroller.model.AnnotationModel
 
+private fun createAnnotationPredicate(types: List<String?>): (AnnotationModel) -> Boolean = {
+    it.type.qualifiedName in types
+}
+
 object AnnotationModelPredicates {
-    val httpHeaderAnnotation: (AnnotationModel) -> Boolean =
-        TypeModelPredicates.headerAnnotation compose AnnotationModel::type
-
-    val controllerTypeAnnotation: (AnnotationModel) -> Boolean =
-        TypeModelPredicates.controllerType compose AnnotationModel::type
-
-    val hasHttpMethodsAnnotation: (AnnotationModel) -> Boolean =
-        TypeModelPredicates.httpMethodsType compose AnnotationModel::type
-
-    val pathParamAnnotation: (AnnotationModel) -> Boolean =
-        TypeModelPredicates.pathParamAnnotation compose AnnotationModel::type
-
-    val bodyParamAnnotation: (AnnotationModel) -> Boolean =
-        TypeModelPredicates.bodyParamAnnotation compose AnnotationModel::type
-
-    val queryParamAnnotation: (AnnotationModel) -> Boolean =
-        TypeModelPredicates.queryParamAnnotation compose AnnotationModel::type
-
-    val multipartParamAnnotation: (AnnotationModel) -> Boolean =
-        TypeModelPredicates.multipartParamAnnotation compose AnnotationModel::type
-
-    val headerParamAnnotation: (AnnotationModel) -> Boolean =
-        TypeModelPredicates.headerParamAnnotation compose AnnotationModel::type
-
-    val securityAnnotation: (AnnotationModel) -> Boolean =
-        TypeModelPredicates.securityAnnotation compose AnnotationModel::type
+    val httpHeaderAnnotation = createAnnotationPredicate(listOf(HttpHeader::class.qualifiedName))
+    val controllerTypeAnnotation = createAnnotationPredicate(listOf(Controller::class.qualifiedName))
+    val hasHttpMethodsAnnotation = createAnnotationPredicate(Constants.HttpMethodAnnotations)
+    val pathParamAnnotation = createAnnotationPredicate(listOf(PathParam::class.qualifiedName))
+    val bodyParamAnnotation = createAnnotationPredicate(listOf(BodyParam::class.qualifiedName))
+    val queryParamAnnotation = createAnnotationPredicate(listOf(QueryParam::class.qualifiedName))
+    val multipartParamAnnotation = createAnnotationPredicate(listOf(MultipartParam::class.qualifiedName))
+    val headerParamAnnotation = createAnnotationPredicate(listOf(HeaderParam::class.qualifiedName))
+    val securityAnnotation = createAnnotationPredicate(listOf(Security::class.qualifiedName))
 }

@@ -5,6 +5,5 @@ data class RouterModel(
     val handlers: List<RouteModel>,
     val path: String,
     val controller: TypeModel,
-    val annotations: List<AnnotationModel>
+    val securityConfig: SecurityConfig?
 )
-

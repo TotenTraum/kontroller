@@ -1,4 +1,4 @@
-package ru.ttraum.kontroller.predicate
+package ru.ttraum.kontroller.mapper
 
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 

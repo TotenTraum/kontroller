@@ -9,5 +9,6 @@ data class RouteModel(
     val multipartParam: ParameterModel?,
     val bodyParam: ParameterModel?,
     val returnType: ResultModel,
-    val annotations: List<AnnotationModel>
+    val headers: List<HttpHeaderConfig>,
+    val securityConfig: SecurityConfig?
 )

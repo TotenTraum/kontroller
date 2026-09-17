@@ -1,6 +1,5 @@
 package ru.ttraum.kontroller.specs
 
-import arrow.core.compose
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
@@ -10,10 +9,7 @@ import ru.ttraum.kontroller.constant.Constants
 import ru.ttraum.kontroller.constant.MemberNames
 import ru.ttraum.kontroller.constant.PackageNames
 import ru.ttraum.kontroller.model.*
-import ru.ttraum.kontroller.predicate.AnnotationModelPredicates
 import ru.ttraum.kontroller.predicate.ParameterModelPredicates
-import ru.ttraum.kontroller.predicate.TypeModelPredicates
-import ru.ttraum.kontroller.utils.useControlFlow
 
 private val authenticationStrategy =
     ClassName(PackageNames.KTOR_SERVER_AUTH, "AuthenticationStrategy")
@@ -28,7 +24,7 @@ private fun buildRouteCodeBlock(router: RouterModel, route: RouteModel): CodeBlo
     CodeBlock.builder()
         .apply {
             defineMethod(router, route) {
-                setupHeaders(route.annotations.filter(AnnotationModelPredicates.httpHeaderAnnotation))
+                setupHeaders(route.headers)
                 setupQueryModel(route.queryParamsModels)
                 setupQueryParam(route.parameters.filter(ParameterModelPredicates.hasQueryParamAnnotation))
                 setupPathParams(route.parameters.filter(ParameterModelPredicates.hasPathParamAnnotation))
@@ -40,11 +36,9 @@ private fun buildRouteCodeBlock(router: RouterModel, route: RouteModel): CodeBlo
         }
         .build()
 
-private fun CodeBlock.Builder.setupHeaders(headers: List<AnnotationModel>) =
+private fun CodeBlock.Builder.setupHeaders(headers: List<HttpHeaderConfig>) =
     headers.forEach { header ->
-        val name by header.fields
-        val value by header.fields
-        addStatement("call.response.%M(%S, %S)", MemberNames.ktorHeader, name, value)
+        addStatement("call.response.%M(%S, %S)", MemberNames.ktorHeader, header.name, header.value)
     }
 
 private fun CodeBlock.Builder.setupPathParams(pathParams: List<ParameterModel>) =
@@ -63,11 +57,7 @@ private fun CodeBlock.Builder.setupBodyParam(bodyParam: ParameterModel?) =
 
 private fun CodeBlock.Builder.setupMultipartParam(multipartParam: ParameterModel?) =
     multipartParam?.let { param ->
-        val annotation =
-            param.annotations
-                .single(TypeModelPredicates.multipartParamAnnotation compose AnnotationModel::type)
-
-        val formFieldLimit = annotation.fields["formFieldLimit"] as Long
+        val formFieldLimit = param.multipartConfig?.formFieldLimit ?: -1L
 
         addStatement(
             "val ${param.name} = call.%M($formFieldLimit)",
@@ -131,28 +121,13 @@ private fun CodeBlock.Builder.defineMethod(
     setupSecurity(router, route, defineHttpMethod)
 }
 
-private data class SecurityConfig(val providers: List<String>, val nested: Boolean)
-
-private fun extractSecurityConfig(annotations: List<AnnotationModel>): SecurityConfig? {
-    val securityAnnotations = annotations.filter(AnnotationModelPredicates.securityAnnotation)
-    if (securityAnnotations.isEmpty()) return null
-
-    val providers = securityAnnotations
-        .flatMap { (it.fields["providers"] as? List<*>).orEmpty() }
-        .map { it.toString() }
-        .distinct()
-    val nested = securityAnnotations.any { it.fields["nested"] as? Boolean == true }
-
-    return SecurityConfig(providers, nested)
-}
-
 private fun CodeBlock.Builder.setupSecurity(
     router: RouterModel,
     route: RouteModel,
     body: CodeBlock.Builder.() -> Unit
 ) {
-    val classSecurity = extractSecurityConfig(router.annotations)
-    val functionSecurity = extractSecurityConfig(route.annotations)
+    val classSecurity = router.securityConfig
+    val functionSecurity = route.securityConfig
 
     when {
         classSecurity == null && functionSecurity == null ->

@@ -3,7 +3,6 @@ package ru.ttraum.kontroller.specs
 import com.squareup.kotlinpoet.*
 import io.ktor.server.routing.*
 import ru.ttraum.kontroller.model.RouterModel
-import ru.ttraum.kontroller.utils.useControlFlow
 
 fun createRouterSpec(routerModel: RouterModel, applier: TypeSpec.Builder.() -> Unit): TypeSpec =
     TypeSpec.classBuilder(routerModel.name)
