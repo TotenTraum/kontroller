@@ -63,6 +63,8 @@ private fun mapHandler(function: KSFunctionDeclaration): Either<MapperError, Rou
         .filter(AnnotationModelPredicates.httpHeaderAnnotation)
         .map { it.toHttpHeaderConfig() }
     val securityConfig = annotations.extractSecurityConfig()
+    val requestBodyDoc = bodyParam?.annotations?.toRequestBodyDoc()
+    val operationDoc = annotations.toOperationDoc(requestBodyDoc)
 
     RouteModel(
         name = handlerName,
@@ -75,6 +77,7 @@ private fun mapHandler(function: KSFunctionDeclaration): Either<MapperError, Rou
         bodyParam = bodyParam,
         headers = headers,
         securityConfig = securityConfig,
+        operationDoc = operationDoc,
     )
 }
 

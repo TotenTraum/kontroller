@@ -31,15 +31,24 @@ fun KSTypeReference.toTypeModel(): TypeModel {
     )
 }
 
-fun Sequence<KSAnnotation>.toAnnotationModels(): Sequence<AnnotationModel> =
-    map { annotation ->
-        AnnotationModel(
-            type = annotation.annotationType.resolve().declaration.toTypeModel(),
-            fields = annotation.arguments.associate { arg ->
-                arg.name!!.asString() to arg.value
-            }
-        )
-    }
+fun Sequence<KSAnnotation>.toAnnotationModels(): Sequence<AnnotationModel> = map { it.toAnnotationModel() }
+
+fun KSAnnotation.toAnnotationModel(): AnnotationModel = AnnotationModel(
+    type = annotationType.resolve().declaration.toTypeModel(),
+    fields = arguments.associate { arg -> arg.name!!.asString() to arg.value.toFieldValue() }
+)
+
+/**
+ * Recursively resolves annotation argument values so nested annotations (e.g. `@ApiResponses(value = [@ApiResponse(...)])`)
+ * decode into [AnnotationModel] and class-literal arguments (e.g. `@Schema(implementation = Foo::class)`) decode into
+ * [TypeModel], instead of leaking raw KSP types into [AnnotationModel.fields].
+ */
+private fun Any?.toFieldValue(): Any? = when (this) {
+    is KSAnnotation -> toAnnotationModel()
+    is KSType -> declaration.toTypeModel()
+    is List<*> -> map { it.toFieldValue() }
+    else -> this
+}
 
 fun List<KSValueParameter>.toParameterModels(): List<ParameterModel> =
     map { parameter ->
@@ -50,7 +59,8 @@ fun List<KSValueParameter>.toParameterModels(): List<ParameterModel> =
             annotations = annotations,
             multipartConfig = annotations
                 .singleOrNull(AnnotationModelPredicates.multipartParamAnnotation)
-                ?.toMultipartConfig()
+                ?.toMultipartConfig(),
+            parameterDoc = annotations.toParameterDoc()
         )
     }
 

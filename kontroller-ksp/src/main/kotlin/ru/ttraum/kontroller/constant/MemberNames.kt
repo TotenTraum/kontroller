@@ -19,4 +19,6 @@ object MemberNames {
     val ktorRespond = MemberName(PackageNames.KTOR_SERVER_RESPONSE, "respond")
 
     val ktorAuthenticate = MemberName(PackageNames.KTOR_SERVER_AUTH, "authenticate")
+    val ktorDescribe = MemberName(PackageNames.KTOR_SERVER_ROUTING_OPENAPI, "describe")
+    val ktorJsonSchema = MemberName(PackageNames.KTOR_OPENAPI, "jsonSchema")
 }

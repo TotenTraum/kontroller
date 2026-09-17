@@ -2,10 +2,12 @@ package ru.ttraum.kontroller.specs
 
 import com.squareup.kotlinpoet.*
 import io.ktor.server.routing.*
+import ru.ttraum.kontroller.core.router.Router
 import ru.ttraum.kontroller.model.RouterModel
 
 fun createRouterSpec(routerModel: RouterModel, applier: TypeSpec.Builder.() -> Unit): TypeSpec =
     TypeSpec.classBuilder(routerModel.name)
+        .addSuperinterface(Router::class)
         .primaryConstructor(createConstructorSpec(routerModel))
         .addProperty(createControllerProperty(routerModel))
         .apply(applier)

@@ -9,6 +9,7 @@ kspVersion = "2.3.12"
 ktorVersion = "3.6.0"
 arrowVersion = "2.2.3"
 publishPluginVersion = "0.37.0"
+swaggerAnnotationsVersion = "2.2.55"
 
 [libraries]
 # Code generation
@@ -17,7 +18,7 @@ kspApi = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref
 
 #HTTP
 ktor-server-core = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktorVersion" }
-ktor-server-netty = { module = "io.ktor:ktor-server-netty-jvm", version.ref = "ktorVersion" }
+ktor-server-cio = { module = "io.ktor:ktor-server-cio-jvm", version.ref = "ktorVersion" }
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages-jvm", version.ref = "ktorVersion" }
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation-jvm", version.ref = "ktorVersion" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation-jvm", version.ref = "ktorVersion" }
@@ -25,6 +26,8 @@ ktor-server-json = { module = "io.ktor:ktor-serialization-kotlinx-json-jvm", ver
 ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktorVersion" }
 ktor-server-di = { module = "io.ktor:ktor-server-di", version.ref = "ktorVersion" }
 ktor-server-auth = { module = "io.ktor:ktor-server-auth-jvm", version.ref = "ktorVersion" }
+ktor-server-routing-openapi = { module = "io.ktor:ktor-server-routing-openapi-jvm", version.ref = "ktorVersion" }
+swagger-annotations = { module = "io.swagger.core.v3:swagger-annotations", version.ref = "swaggerAnnotationsVersion" }
 #FP
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrowVersion" }
 arrow-functions = { module = "io.arrow-kt:arrow-functions", version.ref = "arrowVersion" }

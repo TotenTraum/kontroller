@@ -1,6 +1,7 @@
 package ru.ttraum.example.controller
 
 import ru.ttraum.example.api.HomePageApi
+import ru.ttraum.example.api.dto.LockAnswer
 import ru.ttraum.example.api.dto.SelectQuery
 
 class HomePageController : HomePageApi {
@@ -28,5 +29,9 @@ class HomePageController : HomePageApi {
 
     override fun funSecurity(): String {
         return "fun security"
+    }
+
+    override fun locks(): List<LockAnswer> {
+        return listOf(LockAnswer(entityId = "1", locked = true))
     }
 }

@@ -8,9 +8,11 @@ description = "A library for generating controller routing using ksp for ktor"
 
 dependencies {
     implementation(projects.kontrollerAnnotations)
+    implementation(projects.kontrollerCore)
     implementation(libs.kotlinPoet)
     implementation(libs.arrow.core)
     implementation(libs.arrow.functions)
     implementation(libs.kspApi)
     implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.routing.openapi)
 }

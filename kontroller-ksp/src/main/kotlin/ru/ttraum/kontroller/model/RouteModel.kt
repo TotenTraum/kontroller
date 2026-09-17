@@ -10,5 +10,6 @@ data class RouteModel(
     val bodyParam: ParameterModel?,
     val returnType: ResultModel,
     val headers: List<HttpHeaderConfig>,
-    val securityConfig: SecurityConfig?
+    val securityConfig: SecurityConfig?,
+    val operationDoc: OperationDoc?
 )

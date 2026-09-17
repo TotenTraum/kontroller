@@ -1,11 +1,11 @@
 package ru.ttraum.kontroller.specs
 
-import com.squareup.kotlinpoet.AnnotationSpec
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.MemberName
-import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.*
 import ru.ttraum.kontroller.constant.MemberNames
+import ru.ttraum.kontroller.constant.PackageNames
 import ru.ttraum.kontroller.model.RouterModel
+
+private val experimentalKtorApi = ClassName(PackageNames.KTOR_UTILS_IO, "ExperimentalKtorApi")
 
 fun generateRouterFile(router: RouterModel): FileSpec {
     val routerSpec = createRouterSpec(router) {
@@ -20,6 +20,7 @@ fun generateRouterFile(router: RouterModel): FileSpec {
         addType(routerSpec)
         addFunction(funSpec)
         addDefaultImports(MemberNames.ktorGetValueOrNull)
+        optIn(experimentalKtorApi)
     }
 }
 
@@ -47,5 +48,16 @@ private fun FileSpec.Builder.suppressWarnings(vararg types: String): FileSpec.Bu
 private fun FileSpec.Builder.addDefaultImports(vararg members: MemberName): FileSpec.Builder = apply {
     members.forEach {
         this.addImport(it.packageName, it.simpleName)
+    }
+}
+
+private fun FileSpec.Builder.optIn(vararg classNames: ClassName): FileSpec.Builder = apply {
+    if (classNames.isNotEmpty()) {
+        val format = classNames.joinToString(", ") { "%T::class" }
+        addAnnotation(
+            AnnotationSpec.builder(ClassName("kotlin", "OptIn"))
+                .addMember(format, *classNames)
+                .build()
+        )
     }
 }

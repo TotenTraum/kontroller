@@ -1,16 +1,18 @@
 package ru.ttraum.example
 
 import io.ktor.http.*
+import io.ktor.openapi.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.di.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.routing.openapi.*
 import ru.ttraum.example.api.*
 import ru.ttraum.example.api.dto.ErrorResponse
 import ru.ttraum.example.controller.FileController
@@ -19,7 +21,7 @@ import ru.ttraum.example.controller.SecurityController
 import ru.ttraum.example.controller.StoreController
 
 fun main() {
-    embeddedServer(Netty, port = 8089) {
+    embeddedServer(CIO, port = 8067) {
         module()
     }.start(wait = true)
 }
@@ -69,6 +71,19 @@ fun Application.security() {
 
 fun Application.routing() {
     routing {
+        get("openapi.yaml") {
+            val source = OpenApiDocSource.Routing(contentType = ContentType.Application.Yaml)
+            val info = OpenApiInfo(title = "kontroller example", version = "0.1.0")
+            val doc = source.read(
+                application, OpenApiDoc(
+                    info = info,
+                    servers = listOf(Server("http://localhost:8080"))
+                )
+            )
+            call.respondText(doc.content, doc.contentType)
+        }
+
+
         route("api/v1") {
             val router: StoreApiRouter by dependencies
             this.routes(router)
