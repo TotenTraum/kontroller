@@ -3,14 +3,6 @@ package ru.ttraum.kontroller.utils
 import com.google.devtools.ksp.symbol.*
 import ru.ttraum.kontroller.model.*
 
-fun KSClassDeclaration.toTypeModel(): TypeModel = TypeModel(
-    packageName = packageName.asString(),
-    className = simpleName.asString(),
-    qualifiedName = qualifiedName?.asString() ?: "",
-    false,
-    listOf()
-)
-
 fun KSDeclaration.toTypeModel(): TypeModel = TypeModel(
     packageName = packageName.asString(),
     className = simpleName.asString(),

@@ -1,6 +1,7 @@
 package ru.ttraum.kontroller.mapper
 
 import arrow.core.*
+import arrow.core.raise.Raise
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.option
@@ -42,26 +43,18 @@ private fun extractHandlers(controllerClass: KSClassDeclaration): EitherNel<Mapp
         .filter(KSFunctionPredicates.hasHttpMethodAnnotation)
         .mapOrAccumulate { mapHandler(it).bind() }
 
+private fun <A> Raise<MapperError>.bindRoute(handlerName: String, result: Either<MapperError, A>): A =
+    result.mapLeft { MapperError.RouteError(handlerName, listOf(it)) }.bind()
+
 private fun mapHandler(function: KSFunctionDeclaration): Either<MapperError, RouteModel> = either {
     val handlerName = function.qualifiedName?.getShortName() ?: ""
     val annotations = function.annotations.toAnnotationModels().toList()
     val parameters = function.parameters.toParameterModels().toList()
 
     val queryParams = function.parameters.extractQueryParamsModel()
-        .mapLeft { MapperError.RouteError(handlerName, listOf(it)) }
-        .bind()
-
-    val multipartParam = function.parameters.extractMultipart()
-        .mapLeft { MapperError.RouteError(handlerName, listOf(it)) }
-        .bind()
-
-    val bodyParam = function.parameters.extractBodyParams()
-        .mapLeft { MapperError.RouteError(handlerName, listOf(it)) }
-        .bind()
-
-    val definition = extractHttpMethod(annotations)
-        .mapLeft { MapperError.RouteError(handlerName, listOf(it)) }
-        .bind()
+    val multipartParam = bindRoute(handlerName, function.parameters.extractMultipart())
+    val bodyParam = bindRoute(handlerName, function.parameters.extractBodyParams())
+    val definition = bindRoute(handlerName, extractHttpMethod(annotations))
 
     val returnType = function.returnType.toResultModel()
 
@@ -81,7 +74,7 @@ private fun mapHandler(function: KSFunctionDeclaration): Either<MapperError, Rou
 private fun extractHttpMethod(annotations: List<AnnotationModel>): Either<MapperError, HttpDefinition> = either {
     val httpMethods = annotations.filter(AnnotationModelPredicates.hasHttpMethodsAnnotation)
 
-    ensure(httpMethods.size == 1) { MapperError.ManyHttpMethods() }
+    ensure(httpMethods.size == 1) { MapperError.ManyHttpMethods }
 
     val method = httpMethods.first()
 
@@ -91,7 +84,7 @@ private fun extractHttpMethod(annotations: List<AnnotationModel>): Either<Mapper
     HttpDefinition(path, httpMethod)
 }
 
-private fun List<KSValueParameter>.extractQueryParamsModel(): Either<MapperError, List<QueryParamsModel>> = either {
+private fun List<KSValueParameter>.extractQueryParamsModel(): List<QueryParamsModel> =
     this@extractQueryParamsModel
         .filter { it.annotations.any(KSAnnotationPredicates.queryModelAnnotation) }
         .filter { it.type.resolve().declaration is KSClassDeclaration }
@@ -110,13 +103,12 @@ private fun List<KSValueParameter>.extractQueryParamsModel(): Either<MapperError
                 params
             )
         }
-}
 
 private fun List<KSValueParameter>.extractBodyParams(): Either<MapperError, ParameterModel?> = either {
     val params = this@extractBodyParams.toParameterModels()
 
     val bodyParams = params.filter(ParameterModelPredicates.hasBodyParamAnnotation)
-    ensure(bodyParams.size <= 1) { MapperError.ManyBodyParams() }
+    ensure(bodyParams.size <= 1) { MapperError.ManyBodyParams }
 
     bodyParams.singleOrNull()
 }
@@ -126,12 +118,12 @@ private fun List<KSValueParameter>.extractMultipart(): Either<MapperError, Param
         .toParameterModels()
         .filter(ParameterModelPredicates.hasMultipartParamAnnotation)
 
-    ensure(multipartParam.size <= 1) { MapperError.ManyMultipartParams() }
+    ensure(multipartParam.size <= 1) { MapperError.ManyMultipartParams }
 
     val multipart = multipartParam.singleOrNull()
 
     if (multipart != null) {
-        ensure(multipart.type.qualifiedName == MultiPartData::class.qualifiedName) { MapperError.InvalidMultipartParamType() }
+        ensure(multipart.type.qualifiedName == MultiPartData::class.qualifiedName) { MapperError.InvalidMultipartParamType }
     }
 
     multipart

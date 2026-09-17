@@ -43,14 +43,14 @@ private fun CodeBlock.Builder.setupHeaders(headers: List<AnnotationModel>) =
 
 private fun CodeBlock.Builder.setupPathParams(pathParams: List<ParameterModel>) =
     pathParams.forEach { param ->
-        val statement = "val ${param.name}: ${param.type.getFullSignature()} by call.parameters"
+        val statement = "val ${param.name}: ${param.type.fullSignature} by call.parameters"
         addStatement(statement)
     }
 
 private fun CodeBlock.Builder.setupBodyParam(bodyParam: ParameterModel?) =
     bodyParam?.let { param ->
         addStatement(
-            "val ${param.name} = call.%M<${param.type.getFullSignature()}>()",
+            "val ${param.name} = call.%M<${param.type.fullSignature}>()",
             MemberNames.ktorReceive
         )
     }
@@ -71,7 +71,7 @@ private fun CodeBlock.Builder.setupMultipartParam(multipartParam: ParameterModel
 
 private fun CodeBlock.Builder.setupQueryParam(pathParams: List<ParameterModel>) =
     pathParams.forEach { param ->
-        val statement = "val ${param.name}: ${param.type.getFullSignature()} by call.request.queryParameters"
+        val statement = "val ${param.name}: ${param.type.fullSignature} by call.request.queryParameters"
         addStatement(statement)
     }
 
@@ -80,11 +80,11 @@ private fun CodeBlock.Builder.setupQueryModel(queryParamsModels: List<QueryParam
         useControlFlow("val ${queryParamsModel.name} = run") {
             queryParamsModel.params.forEach { param ->
                 val statement =
-                    "val ${param.name}: ${param.type.getFullSignature()} by call.request.queryParameters"
+                    "val ${param.name}: ${param.type.fullSignature} by call.request.queryParameters"
                 addStatement(statement)
             }
             val parameterCall = buildParameterCall(queryParamsModel.params)
-            addStatement("${queryParamsModel.type.getFullSignature()}($parameterCall)")
+            addStatement("${queryParamsModel.type.fullSignature}($parameterCall)")
         }
     }
 

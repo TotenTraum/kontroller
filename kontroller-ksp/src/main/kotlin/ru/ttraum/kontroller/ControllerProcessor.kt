@@ -17,6 +17,7 @@ class ControllerProcessor(
     private val environment: SymbolProcessorEnvironment
 ) : SymbolProcessor {
     override fun process(resolver: Resolver): List<KSAnnotated> {
+        val dependencies = Dependencies(true, *resolver.getAllFiles().toList().toTypedArray())
 
         resolver
             .getSymbolsWithAnnotation(Controller::class.qualifiedName!!)
@@ -25,18 +26,14 @@ class ControllerProcessor(
                 controllerModelFromKSClass(it)
                     .onLeft(errorLogger)
                     .getOrNull()
-            }.map { router ->
-                generateRouterFile(router)
-            }.forEach { spec ->
-                writeFileSpecs(spec, environment, resolver)
+            }.forEach { router ->
+                writeFileSpec(generateRouterFile(router), dependencies)
             }
 
         return emptyList()
     }
 
-    private fun writeFileSpecs(spec: FileSpec, environment: SymbolProcessorEnvironment, resolver: Resolver) {
-        val dependencies = Dependencies(true, *resolver.getAllFiles().toList().toTypedArray())
-
+    private fun writeFileSpec(spec: FileSpec, dependencies: Dependencies) {
         environment.codeGenerator.createNewFile(dependencies, spec.packageName, spec.name)
             .use { it.write(spec.toString().toByteArray()) }
     }

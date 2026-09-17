@@ -19,7 +19,7 @@ object Constants {
         "DELETE"
     )
 
-    val httpMethodToMemberName = mutableMapOf(
+    val httpMethodToMemberName = mapOf(
         "GET" to MemberNames.ktorGet,
         "POST" to MemberNames.ktorPost,
         "PUT" to MemberNames.ktorPut,

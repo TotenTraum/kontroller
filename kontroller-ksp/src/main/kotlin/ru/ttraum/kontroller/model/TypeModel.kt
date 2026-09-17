@@ -9,21 +9,17 @@ data class TypeModel(
     val isNullable: Boolean,
     val typeArguments: List<TypeModel>
 ) {
-    fun getSignature(): String {
-        val nullSafety = if (isNullable) "?" else ""
-        return className + getGenericSignature() + nullSafety
-    }
+    val signature: String
+        get() = className + genericSignature + (if (isNullable) "?" else "")
 
-    fun getFullSignature(): String {
-        return packageName + "." + getSignature()
-    }
+    val fullSignature: String
+        get() = "$packageName.$signature"
 
-    private fun getGenericSignature(): String {
-        if (typeArguments.isEmpty()) {
-            return ""
-        }
-        return typeArguments.joinToString(prefix = "<", postfix = ">") { it.getSignature() }
-    }
+    private val genericSignature: String
+        get() = typeArguments
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString(prefix = "<", postfix = ">") { it.signature }
+            ?: ""
 }
 
 val UnitTypeModel = TypeModel(
