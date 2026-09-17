@@ -21,4 +21,12 @@ class HomePageController : HomePageApi {
     override fun queryModel(model: SelectQuery): String {
         return (model.message ?: "empty") + " and " + (model.number ?: 0).toString()
     }
+
+    override fun header(name: String?): String {
+        return name ?: "empty"
+    }
+
+    override fun funSecurity(): String {
+        return "fun security"
+    }
 }

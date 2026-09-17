@@ -1,17 +1,22 @@
 package ru.ttraum.kontroller.specs
 
 import arrow.core.compose
+import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import io.ktor.http.*
 import io.ktor.server.routing.*
 import ru.ttraum.kontroller.constant.Constants
 import ru.ttraum.kontroller.constant.MemberNames
+import ru.ttraum.kontroller.constant.PackageNames
 import ru.ttraum.kontroller.model.*
 import ru.ttraum.kontroller.predicate.AnnotationModelPredicates
 import ru.ttraum.kontroller.predicate.ParameterModelPredicates
 import ru.ttraum.kontroller.predicate.TypeModelPredicates
 import ru.ttraum.kontroller.utils.useControlFlow
+
+private val authenticationStrategy =
+    ClassName(PackageNames.KTOR_SERVER_AUTH, "AuthenticationStrategy")
 
 fun createRouteSpec(router: RouterModel, route: RouteModel): FunSpec =
     FunSpec.builder(route.name + route.method)
@@ -23,10 +28,11 @@ private fun buildRouteCodeBlock(router: RouterModel, route: RouteModel): CodeBlo
     CodeBlock.builder()
         .apply {
             defineMethod(router, route) {
-                setupHeaders(route.annotations.filter(AnnotationModelPredicates.headerParamAnnotation))
+                setupHeaders(route.annotations.filter(AnnotationModelPredicates.httpHeaderAnnotation))
                 setupQueryModel(route.queryParamsModels)
                 setupQueryParam(route.parameters.filter(ParameterModelPredicates.hasQueryParamAnnotation))
                 setupPathParams(route.parameters.filter(ParameterModelPredicates.hasPathParamAnnotation))
+                setupHeaderParams(route.parameters.filter(ParameterModelPredicates.hasHeaderParamAnnotation))
                 setupBodyParam(route.bodyParam)
                 setupMultipartParam(route.multipartParam)
                 handleRequest(router, route)
@@ -71,7 +77,14 @@ private fun CodeBlock.Builder.setupMultipartParam(multipartParam: ParameterModel
 
 private fun CodeBlock.Builder.setupQueryParam(pathParams: List<ParameterModel>) =
     pathParams.forEach { param ->
-        val statement = "val ${param.name}: ${param.type.fullSignature} by call.request.queryParameters"
+        val statement =
+            "val ${param.name}: ${param.type.fullSignature} by call.request.queryParameters"
+        addStatement(statement)
+    }
+
+private fun CodeBlock.Builder.setupHeaderParams(headerParams: List<ParameterModel>) =
+    headerParams.forEach { param ->
+        val statement = "val ${param.name}: ${param.type.fullSignature} by call.request.headers"
         addStatement(statement)
     }
 
@@ -103,9 +116,80 @@ private fun CodeBlock.Builder.defineMethod(
     body: CodeBlock.Builder.() -> Unit
 ) {
     val normalizedPath = normalizePath(router.path + "/" + route.path)
+    val defineHttpMethod: CodeBlock.Builder.() -> Unit = {
+        when {
+            route.method in Constants.HttpMethods -> handleStandardHttpMethod(
+                normalizedPath,
+                route,
+                body
+            )
+
+            else -> handleCustomHttpMethod(normalizedPath, route, body)
+        }
+    }
+
+    setupSecurity(router, route, defineHttpMethod)
+}
+
+private data class SecurityConfig(val providers: List<String>, val nested: Boolean)
+
+private fun extractSecurityConfig(annotations: List<AnnotationModel>): SecurityConfig? {
+    val securityAnnotations = annotations.filter(AnnotationModelPredicates.securityAnnotation)
+    if (securityAnnotations.isEmpty()) return null
+
+    val providers = securityAnnotations
+        .flatMap { (it.fields["providers"] as? List<*>).orEmpty() }
+        .map { it.toString() }
+        .distinct()
+    val nested = securityAnnotations.any { it.fields["nested"] as? Boolean == true }
+
+    return SecurityConfig(providers, nested)
+}
+
+private fun CodeBlock.Builder.setupSecurity(
+    router: RouterModel,
+    route: RouteModel,
+    body: CodeBlock.Builder.() -> Unit
+) {
+    val classSecurity = extractSecurityConfig(router.annotations)
+    val functionSecurity = extractSecurityConfig(route.annotations)
+
     when {
-        route.method in Constants.HttpMethods -> handleStandardHttpMethod(normalizedPath, route, body)
-        else -> handleCustomHttpMethod(normalizedPath, route, body)
+        classSecurity == null && functionSecurity == null ->
+            body()
+
+        classSecurity != null && functionSecurity != null && (classSecurity.nested || functionSecurity.nested) ->
+            setupAuthenticate(classSecurity.providers, required = true) {
+                setupAuthenticate(functionSecurity.providers, required = true, body)
+            }
+
+        else -> {
+            val providers =
+                (classSecurity?.providers.orEmpty() + functionSecurity?.providers.orEmpty()).distinct()
+            setupAuthenticate(providers, required = false, body)
+        }
+    }
+}
+
+private fun CodeBlock.Builder.setupAuthenticate(
+    providers: List<String>,
+    required: Boolean,
+    body: CodeBlock.Builder.() -> Unit
+) {
+    val placeholders = providers.joinToString(", ") { "%S" }
+    if (required) {
+        useControlFlow(
+            "this.%M($placeholders, strategy = %T.Required)",
+            MemberNames.ktorAuthenticate,
+            *providers.toTypedArray(),
+            authenticationStrategy
+        ) { body() }
+    } else {
+        useControlFlow(
+            "this.%M($placeholders)",
+            MemberNames.ktorAuthenticate,
+            *providers.toTypedArray()
+        ) { body() }
     }
 }
 

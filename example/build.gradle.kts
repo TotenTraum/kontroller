@@ -23,6 +23,7 @@ dependencies {
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.server.json)
     implementation(libs.ktor.server.di)
+    implementation(libs.ktor.server.auth)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.ktor.server.test.host)

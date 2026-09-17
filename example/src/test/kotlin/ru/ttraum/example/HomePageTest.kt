@@ -46,4 +46,20 @@ class HomePageTest {
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("empty and 1", response.bodyAsText())
     }
+
+    @Test
+    fun headerParamTest() = testApplication {
+        application {
+            module()
+        }
+        var response = client.get("header") {
+            header("name", "azim")
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals("azim", response.bodyAsText())
+
+        response = client.get("header")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals("empty", response.bodyAsText())
+    }
 }

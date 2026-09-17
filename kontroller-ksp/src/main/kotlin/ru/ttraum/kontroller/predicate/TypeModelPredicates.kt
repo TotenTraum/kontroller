@@ -13,7 +13,9 @@ object TypeModelPredicates {
     val pathParamAnnotation = createTypePredicate(listOf(PathParam::class.qualifiedName))
     val queryParamAnnotation = createTypePredicate(listOf(QueryParam::class.qualifiedName))
     val multipartParamAnnotation = createTypePredicate(listOf(MultipartParam::class.qualifiedName))
+    val headerParamAnnotation = createTypePredicate(listOf(HeaderParam::class.qualifiedName))
     val httpMethodsType = createTypePredicate(Constants.HttpMethodAnnotations)
     val controllerType = createTypePredicate(listOf(Controller::class.qualifiedName))
     val bodyParamAnnotation = createTypePredicate(listOf(BodyParam::class.qualifiedName))
+    val securityAnnotation = createTypePredicate(listOf(Security::class.qualifiedName))
 }

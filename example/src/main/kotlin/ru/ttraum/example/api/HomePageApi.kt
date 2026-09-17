@@ -17,4 +17,11 @@ interface HomePageApi {
 
     @GET("query/model")
     fun queryModel(@QueryModel model: SelectQuery): String
+
+    @GET("header")
+    fun header(@HeaderParam name: String?): String
+
+    @Security("auth-b")
+    @GET("security/fun")
+    fun funSecurity(): String
 }

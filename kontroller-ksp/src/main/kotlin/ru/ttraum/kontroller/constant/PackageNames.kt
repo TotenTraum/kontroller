@@ -4,5 +4,6 @@ object PackageNames {
     const val KTOR_SERVER_ROUTING = "io.ktor.server.routing"
     const val KTOR_SERVER_RESPONSE = "io.ktor.server.response"
     const val KTOR_SERVER_RECEIVE = "io.ktor.server.request"
+    const val KTOR_SERVER_AUTH = "io.ktor.server.auth"
     const val KONTROLLER_UTIL = "ru.ttraum.kontroller.core.util"
 }

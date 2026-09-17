@@ -4,7 +4,7 @@ import arrow.core.compose
 import ru.ttraum.kontroller.model.AnnotationModel
 
 object AnnotationModelPredicates {
-    val headerParamAnnotation: (AnnotationModel) -> Boolean =
+    val httpHeaderAnnotation: (AnnotationModel) -> Boolean =
         TypeModelPredicates.headerAnnotation compose AnnotationModel::type
 
     val controllerTypeAnnotation: (AnnotationModel) -> Boolean =
@@ -24,4 +24,10 @@ object AnnotationModelPredicates {
 
     val multipartParamAnnotation: (AnnotationModel) -> Boolean =
         TypeModelPredicates.multipartParamAnnotation compose AnnotationModel::type
+
+    val headerParamAnnotation: (AnnotationModel) -> Boolean =
+        TypeModelPredicates.headerParamAnnotation compose AnnotationModel::type
+
+    val securityAnnotation: (AnnotationModel) -> Boolean =
+        TypeModelPredicates.securityAnnotation compose AnnotationModel::type
 }

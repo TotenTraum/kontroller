@@ -3,6 +3,7 @@ package ru.ttraum.example
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
@@ -14,6 +15,7 @@ import ru.ttraum.example.api.*
 import ru.ttraum.example.api.dto.ErrorResponse
 import ru.ttraum.example.controller.FileController
 import ru.ttraum.example.controller.HomePageController
+import ru.ttraum.example.controller.SecurityController
 import ru.ttraum.example.controller.StoreController
 
 fun main() {
@@ -24,9 +26,45 @@ fun main() {
 
 fun Application.module() {
     serialization()
+    security()
     di()
     routing()
     errorPages()
+}
+
+fun Application.security() {
+    install(Authentication) {
+        basic("auth-a") {
+            validate { credentials ->
+                if (credentials.name == "user-a" && credentials.password == "pass-a") {
+                    UserIdPrincipal(credentials.name)
+                } else {
+                    null
+                }
+            }
+        }
+
+        basic("auth-b") {
+            validate { credentials ->
+                if (credentials.name == "user-b" && credentials.password == "pass-b") {
+                    UserIdPrincipal(credentials.name)
+                } else {
+                    null
+                }
+            }
+        }
+
+        basic("auth-с") {
+            validate { credentials ->
+                val p = this.request.call.principal<UserIdPrincipal>()
+                if (p?.name == "user-a") {
+                    UserIdPrincipal(credentials.name)
+                } else {
+                    null
+                }
+            }
+        }
+    }
 }
 
 fun Application.routing() {
@@ -42,6 +80,8 @@ fun Application.routing() {
         val fileRouter: FileApiRouter by dependencies
         this.routes(fileRouter)
 
+        val securityRouter: SecurityApiRouter by dependencies
+        this.routes(securityRouter)
     }
 }
 
@@ -64,8 +104,10 @@ fun Application.di() {
     dependencies.provide<StoreApi> { StoreController() }
     dependencies.provide<HomePageApi> { HomePageController() }
     dependencies.provide<FileApi> { FileController() }
+    dependencies.provide<SecurityApi> { SecurityController() }
 
     dependencies.provide<StoreApiRouter> { StoreApiRouter(this.resolve()) }
     dependencies.provide<HomePageApiRouter> { HomePageApiRouter(this.resolve()) }
     dependencies.provide<FileApiRouter> { FileApiRouter(this.resolve()) }
+    dependencies.provide<SecurityApiRouter> { SecurityApiRouter(this.resolve()) }
 }

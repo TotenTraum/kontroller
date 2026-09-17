@@ -15,4 +15,7 @@ object ParameterModelPredicates {
 
     val hasMultipartParamAnnotation: (ParameterModel) -> Boolean =
         { it.annotations.any(AnnotationModelPredicates.multipartParamAnnotation) }
+
+    val hasHeaderParamAnnotation: (ParameterModel) -> Boolean =
+        { it.annotations.any(AnnotationModelPredicates.headerParamAnnotation) }
 }

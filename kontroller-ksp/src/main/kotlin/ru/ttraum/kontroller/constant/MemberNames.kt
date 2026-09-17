@@ -17,4 +17,6 @@ object MemberNames {
 
     val ktorHeader = MemberName(PackageNames.KTOR_SERVER_RESPONSE, "header")
     val ktorRespond = MemberName(PackageNames.KTOR_SERVER_RESPONSE, "respond")
+
+    val ktorAuthenticate = MemberName(PackageNames.KTOR_SERVER_AUTH, "authenticate")
 }
